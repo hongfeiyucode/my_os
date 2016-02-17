@@ -30,6 +30,23 @@
  *  * bootmain() in this file takes over, reads in the kernel and jumps to it.
  * */
 
+
+/* *********************************************************************
+这是一个简单的引导加载程序，其唯一的工作是引导加载程序
+从第一个IDE硬盘一个精灵的内核映像。
+磁盘布局
+这个程序（bootasm。和bootmain。C）是引导。
+它应该存储在磁盘的第一扇区中。
+第二部门继续持有核图像。
+内核映像必须是精灵格式。
+启动步骤
+当CPU的靴子，它加载到内存中并执行它的BIOS
+BIOS intializes设备的中断例程集，并读取启动设备的第一个扇区（如硬盘）到内存并跳转到它。
+假设该引导装载程序存储在硬盘驱动器的第一扇区中，此代码将需要…
+控制开始在bootasm。--建立保护模式，和一个栈，C代码，然后运行，然后调用bootmain()
+在这个文件中bootmain()接管，读取内核和跳转到它。
+*/
+
 #define SECTSIZE        512
 #define ELFHDR          ((struct elfhdr *)0x10000)      // scratch space
 
