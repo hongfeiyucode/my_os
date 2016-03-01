@@ -331,6 +331,20 @@ print_stackframe(void) {
       *           NOTICE: the calling funciton's return addr eip  = ss:[ebp+4]
       *                   the calling funciton's ebp = ss:[ebp]
       */
+
+	/* LAB1代码：步骤1 */
+	/*（1）通过调用read_ebp()得到EBP的值。类型（uint32_t）；
+	*（2）通过调用read_eip()得到eip的值。类型（uint32_t）；
+	*（3）从0到stackframe_depth
+	*（3.1）打印EBP EIP的值，
+	*（3.2）（uint32_t）调用参数calling arguments [0..4] = the contents in address (unit32_t)ebp +2 [0..4]
+	*（3.3）cprintf（“\n”）；
+	*（3.4）通过调用print_debuginfo（eip-1）打印C调用函数名称和行号等。
+	*（3.5）弹出一个调用堆栈框架
+	*注意：调用函数的返回地址EIP = SS：[ebp+ 4 ]
+	*调用函数的EBP = SS：[ebp]
+	*/
+
     uint32_t ebp = read_ebp(), eip = read_eip();
 
     int i, j;

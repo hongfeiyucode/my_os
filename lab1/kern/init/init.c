@@ -29,11 +29,11 @@ kern_init(void) {
 
     pmm_init();                 // init physical memory management 物理内存管理
 
-    pic_init();                 // init interrupt controller 中断控制器
+   pic_init();                 // init interrupt controller 中断控制器
     idt_init();                 // init interrupt descriptor table 中断描述符表
 
     clock_init();               // init clock interrupt 时钟中断
-    intr_enable();              // enable irq interrupt Irq中断  ？
+    intr_enable();              // enable irq interrupt 使能中断
 
     //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test() 注释
     // user/kernel mode switch test

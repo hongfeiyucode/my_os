@@ -68,6 +68,17 @@ struct gatedesc {
  *          for software to invoke this interrupt/trap gate explicitly
  *          using an int instruction.
  * */
+
+/* *
+*设置一个正常的中断/陷阱门描述符
+* istrap：1个陷阱（=例外）门，0中断门
+*选择：代码段选择器中断/陷阱处理程序
+*：中断/陷阱处理程序代码段的偏移量
+* DPL：描述符特权级的特权等级要求
+*软件调用此中断/陷阱门明确
+*使用int指令。
+* */
+
 #define SETGATE(gate, istrap, sel, off, dpl) {            \
     (gate).gd_off_15_0 = (uint32_t)(off) & 0xffff;        \
     (gate).gd_ss = (sel);                                \
@@ -130,6 +141,7 @@ struct segdesc {
     }
 
 /* task state segment format (as described by the Pentium architecture book) */
+//任务状态段格式（如奔腾架构书所描述）
 struct taskstate {
     uint32_t ts_link;        // old ts selector
     uintptr_t ts_esp0;        // stack pointers and segment selectors

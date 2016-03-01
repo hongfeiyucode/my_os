@@ -46,6 +46,30 @@ idt_init(void) {
       *     You don't know the meaning of this instruction? just google it! and check the libs/x86.h to know more.
       *     Notice: the argument of lidt is idt_pd. try to find it!
       */
+
+	/*lab1 步骤2*/
+	/*（1）Where are the entry addrs of each中断服务程序（ISR）？
+	*所有isr' S出入addrs是存储在_ _载体。你是uintptr _ T载体_ _ [ ]吗？
+	* _ _载体[ ] is in克恩/陷阱/ vector.s which is produced by工具/ vector.c
+	*（尝试“make”命令在lab1，然后你会发现矢量。在克恩/陷阱目录）
+	你可以使用“外部uintptr _ T载体_ _ [ ]；“to define which will be used this外部变量后。
+	*（2）现在你应该设置the entries of ISR in中断描述表（IDT）。
+	*你看到IDT（256 ]在这排队吗？是的，是IDT！你可以使用setgate宏设置每个item of IDT to
+	*（3）后设置the contents of IDT，你会让CPU know where is the IDT by using指令“讨论”。
+	*你不知道the meaning of this指令？只是谷歌它！和检查LIBS / x86.h知道更多的情况。
+	*注意：the论点of激光损伤阈值是IDT _ PD。try to find it！
+	*/
+
+    extern uintptr_t __vectors[];
+    int i;
+    for (i = 0; i < sizeof(idt) / sizeof(struct gatedesc); i ++) {
+        SETGATE(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
+    }
+	// set for switch from user to kernel
+    SETGATE(idt[T_SWITCH_TOK], 0, GD_KTEXT, __vectors[T_SWITCH_TOK], DPL_USER);
+	// load the IDT
+    lidt(&idt_pd);  //load idt 告诉系统idt生成完毕
+
 }
 
 static const char *
