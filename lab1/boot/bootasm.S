@@ -4,7 +4,8 @@
 # The BIOS loads this code from the first sector of the hard disk into
 # memory at physical address 0x7c00 and starts executing in real mode
 # with %cs=0 %ip=7c00.
-#启动CPU切换到32位保护模式，跳转到C .
+# 所有文件第一个执行！！！
+# 启动CPU从实模式切换到32位保护模式，跳转到C .
 # BIOS加载这个代码从硬盘的第一个扇区
 #内存的物理地址并开始在实模式代码执行
 # %CS=0  %IP=7c00 。
@@ -55,10 +56,8 @@ seta20.2:
     # and segment translation that makes virtual addresses
     # identical to physical addresses, so that the
     # effective memory map does not change during the switch.
-    #开关从真正的保护模式，使用引导GDT
-	#段翻译，使虚拟地址
-	#相同的物理地址，这样
-	#有效记忆地图不在转换开关。
+    #从真正的保护模式，使用引导和GDT段翻译，
+    #使虚拟地址到物理地址相同，因此有效的内存映射不在这个阶段改变。
     lgdt gdtdesc
     movl %cr0, %eax
     orl $CR0_PE_ON, %eax

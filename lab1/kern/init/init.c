@@ -18,7 +18,7 @@ kern_init(void) {
     extern char edata[], end[];
     memset(edata, 0, end - edata);
 
-    cons_init();                // init the console
+    cons_init();                // init the console 控制台
 
     const char *message = "(THU.CST) os is loading ...";
     cprintf("%s\n\n", message);
@@ -27,15 +27,15 @@ kern_init(void) {
 
     grade_backtrace();
 
-    pmm_init();                 // init physical memory management
+    pmm_init();                 // init physical memory management 物理内存管理
 
-    pic_init();                 // init interrupt controller
-    idt_init();                 // init interrupt descriptor table
+    pic_init();                 // init interrupt controller 中断控制器
+    idt_init();                 // init interrupt descriptor table 中断描述符表
 
-    clock_init();               // init clock interrupt
-    intr_enable();              // enable irq interrupt
+    clock_init();               // init clock interrupt 时钟中断
+    intr_enable();              // enable irq interrupt Irq中断  ？
 
-    //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test()
+    //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test() 注释
     // user/kernel mode switch test
     //lab1_switch_test();
 

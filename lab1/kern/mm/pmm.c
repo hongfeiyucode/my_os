@@ -4,6 +4,19 @@
 #include <memlayout.h>
 #include <pmm.h>
 
+/* *                 设定ucore在段机制中要用到的全局变量
+ * 任务状态段TSS：
+ * TSS可以驻留内存的任何地方。一个特殊的段寄存器称为任务寄存器（TR）持有一段选择器，
+ * 指定一个有效的TSS段描述符驻留在GDT。因此，使用TSS以下必须在gdt_init()完成：
+ *     *创建一个TSS描述符在GDT
+ *     *添加足够的信息在内存中的TSS的需要
+ *     *加载TR寄存器，段与段选择器
+ * 当特权级的变化发生在几个领域的TSS有指定新的堆栈指针。
+ * 但只有区域SS0和esp0是有用的在我们的操作系统内核。
+ * 现场SS0包含CPL = 0堆栈段选择器，和esp0包含CPL = 0新的ESP值。
+ * 当一个中断发生在保护模式下，x86 CPU将为SS0和esp0 TSS和负荷值分别为SS和ESP。
+ * */
+
 /* *
  * Task State Segment:
  *
@@ -27,11 +40,13 @@
 static struct taskstate ts = {0};
 
 /* *
- * Global Descriptor Table:
+ * Global Descriptor Table: 全局表述符表 gdt[]
  *
  * The kernel and user segments are identical (except for the DPL). To load
  * the %ss register, the CPL must equal the DPL. Thus, we must duplicate the
  * segments for the user and the kernel. Defined as follows:
+ 内核和用户的细分是相同的（除DPL）。加载%ss寄存器，CPL必须等于DPL。
+ 因此，我们必须复制的用户和内核的段。定义如下：
  *   - 0x0 :  unused (always faults -- for trapping NULL far pointers)
  *   - 0x8 :  kernel code segment
  *   - 0x10:  kernel data segment
@@ -68,7 +83,7 @@ lgdt(struct pseudodesc *pd) {
     asm volatile ("ljmp %0, $1f\n 1:\n" :: "i" (KERNEL_CS));
 }
 
-/* temporary kernel stack */
+/* temporary kernel stack 临时内核栈*/
 uint8_t stack0[1024];
 
 /* gdt_init - initialize the default GDT and TSS */
@@ -77,6 +92,8 @@ gdt_init(void) {
     // Setup a TSS so that we can get the right stack when we trap from
     // user to the kernel. But not safe here, it's only a temporary value,
     // it will be set to KSTACKTOP in lab2.
+    //设置一个TSS可以使我们得到正确的堆栈，当我们从用户到kernel的中断。
+    //但这里不安全，这只是一个暂时的值，它在lab2将被设置为 KSTACKTOP。
     ts.ts_esp0 = (uint32_t)&stack0 + sizeof(stack0);
     ts.ts_ss0 = KERNEL_DS;
 

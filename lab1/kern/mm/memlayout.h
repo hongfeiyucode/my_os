@@ -1,16 +1,16 @@
 #ifndef __KERN_MM_MEMLAYOUT_H__
 #define __KERN_MM_MEMLAYOUT_H__
 
-/* This file contains the definitions for memory management in our OS. */
+/* This file contains the definitions for memory management in our OS. 段管理宏定义*/
 
-/* global segment number */
+/* global segment number 段号*/
 #define SEG_KTEXT    1
 #define SEG_KDATA    2
 #define SEG_UTEXT    3
 #define SEG_UDATA    4
 #define SEG_TSS        5
 
-/* global descriptor numbers */
+/* global descriptor numbers 段描述符编号*/
 #define GD_KTEXT    ((SEG_KTEXT) << 3)        // kernel text
 #define GD_KDATA    ((SEG_KDATA) << 3)        // kernel data
 #define GD_UTEXT    ((SEG_UTEXT) << 3)        // user text

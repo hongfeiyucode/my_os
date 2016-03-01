@@ -6,6 +6,7 @@
 #include <picirq.h>
 #include <trap.h>
 
+//串口和键盘的中断
 /* stupid I/O delay routine necessitated by historical PC design flaws */
 static void
 delay(void) {
