@@ -171,6 +171,15 @@ trap_dispatch(struct trapframe *tf) {
          * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
+        /* LAB1代码：步骤3 */
+        /*处理定时器中断*/ 
+        /*（1）定时器中断后，你应该使用一个全局变量记录此事件（增加），如kern/driver/clock.c
+          （2）每一tick_num周期，你可以使用一个函数打印一些信息，如print_ticks()。
+          （3）太简单了吗？是的，我想是的！*/
+        ticks ++;
+        if (ticks % TICK_NUM == 0) {
+            print_ticks();
+        }
         break;
     case IRQ_OFFSET + IRQ_COM1:
         c = cons_getc();
