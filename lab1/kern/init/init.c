@@ -37,7 +37,7 @@ kern_init(void) {
 
     //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test() 注释
     // user/kernel mode switch test
-    //lab1_switch_test();
+    lab1_switch_test();
 
     /* do nothing */
     while (1);
@@ -84,11 +84,24 @@ lab1_print_cur_status(void) {
 static void
 lab1_switch_to_user(void) {
     //LAB1 CHALLENGE 1 : TODO
+    asm volatile (
+        "sub $0x8, %%esp \n"  
+        "int %0 \n"
+        "movl %%ebp, %%esp"  //ebp是在内核态时的ebp
+        : 
+        : "i"(T_SWITCH_TOU)   //120
+    );
 }
 
 static void
 lab1_switch_to_kernel(void) {
     //LAB1 CHALLENGE 1 :  TODO
+    asm volatile (
+        "int %0 \n"    //这里是在USER，int就切到了kernel，这个int和上面那个int不一样，它暗藏了一个sub 0x08,%%esp
+        "movl %%ebp, %%esp \n"
+        : 
+        : "i"(T_SWITCH_TOK)
+    );
 }
 
 static void

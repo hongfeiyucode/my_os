@@ -47,19 +47,6 @@ idt_init(void) {
       *     Notice: the argument of lidt is idt_pd. try to find it!
       */
 
-	/*lab1 步骤2*/
-	/*（1）Where are the entry addrs of each中断服务程序（ISR）？
-	*所有isr' S出入addrs是存储在_ _载体。你是uintptr _ T载体_ _ [ ]吗？
-	* _ _载体[ ] is in克恩/陷阱/ vector.s which is produced by工具/ vector.c
-	*（尝试“make”命令在lab1，然后你会发现矢量。在克恩/陷阱目录）
-	你可以使用“外部uintptr _ T载体_ _ [ ]；“to define which will be used this外部变量后。
-	*（2）现在你应该设置the entries of ISR in中断描述表（IDT）。
-	*你看到IDT（256 ]在这排队吗？是的，是IDT！你可以使用setgate宏设置每个item of IDT to
-	*（3）后设置the contents of IDT，你会让CPU know where is the IDT by using指令“讨论”。
-	*你不知道the meaning of this指令？只是谷歌它！和检查LIBS / x86.h知道更多的情况。
-	*注意：the论点of激光损伤阈值是IDT _ PD。try to find it！
-	*/
-
     extern uintptr_t __vectors[];
     int i;
     for (i = 0; i < sizeof(idt) / sizeof(struct gatedesc); i ++) {
@@ -158,6 +145,8 @@ print_regs(struct pushregs *regs) {
     cprintf("  eax  0x%08x\n", regs->reg_eax);
 }
 
+struct trapframe switchk2u, *switchu2k;
+
 /* trap_dispatch - dispatch based on what type of trap occurred */
 static void
 trap_dispatch(struct trapframe *tf) {
@@ -187,12 +176,46 @@ trap_dispatch(struct trapframe *tf) {
         break;
     case IRQ_OFFSET + IRQ_KBD:
         c = cons_getc();
-        cprintf("kbd [%03d] %c\n", c, c);
+        cprintf("kbd [%03d] %c\n", c, c);     //kbd在这里输出
         break;
     //LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
     case T_SWITCH_TOU:
+        if (tf->tf_cs != USER_CS) {
+            switchk2u = *tf;   //trapframes
+            switchk2u.tf_cs = USER_CS;
+            switchk2u.tf_ds = switchk2u.tf_es = switchk2u.tf_ss = USER_DS;
+            switchk2u.tf_esp = (uint32_t)tf + sizeof(struct trapframe) - 8;
+            //esp是栈顶指针
+            //(uint32_t)tf + sizeof(struct trapframe) - 8 等同于tf->tf_esp
+            //switchk2u是tf的一个接力，它的esp就是tf的esp，而SS是USER的DS
+        
+            // set eflags, make sure ucore can use io under user mode.
+            // if CPL > IOPL, then cpu will generate a general protection.
+            switchk2u.tf_eflags |= FL_IOPL_MASK;  //或就是补上，与非就是抹掉
+            //FL_IOPL_MASK 0x00003000   I/O Privilege Level bitmask
+            //EFLAGS(program status and control) register主要用于提供程序的状态及进行相应的控制
+        
+            // set temporary stack
+            // then iret will jump to the right stack
+            *((uint32_t *)tf - 1) = (uint32_t)&switchk2u;
+            //switchk2u的ESP指的是TF的iret
+        }
+        break;
     case T_SWITCH_TOK:
-        panic("T_SWITCH_** ??\n");
+        if (tf->tf_cs != KERNEL_CS) {
+            tf->tf_cs = KERNEL_CS;
+            tf->tf_ds = tf->tf_es = KERNEL_DS; //这里的SS是不动的，因为在INT时已经发生了特权级切换，此时的SS已经压入栈中
+            tf->tf_eflags &= ~FL_IOPL_MASK;//或就是补上，与非就是抹掉
+
+            
+            switchu2k = (struct trapframe *)(tf->tf_esp - (sizeof(struct trapframe) - 8));
+            //看清楚了，这里是(sizeof(struct trapframe) - 8)，
+            //(tf->tf_esp - (sizeof(struct trapframe) - 8)) 就是tf本身！！！
+            
+            //memmove(void *dst, const void *src, size_t n)移动
+            memmove(switchu2k, tf, sizeof(struct trapframe) - 8);  
+            *((uint32_t *)tf - 1) = (uint32_t)switchu2k; 
+        }
         break;
     case IRQ_OFFSET + IRQ_IDE1:
     case IRQ_OFFSET + IRQ_IDE2:

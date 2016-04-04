@@ -333,29 +333,31 @@ print_stackframe(void) {
       */
 
 	/* LAB1代码：步骤1 */
-	/*（1）通过调用read_ebp()得到EBP的值。类型（uint32_t）；
-	*（2）通过调用read_eip()得到eip的值。类型（uint32_t）；
-	*（3）从0到stackframe_depth
-	*（3.1）打印EBP EIP的值，
-	*（3.2）（uint32_t）调用参数calling arguments [0..4] = the contents in address (unit32_t)ebp +2 [0..4]
-	*（3.3）cprintf（“\n”）；
-	*（3.4）通过调用print_debuginfo（eip-1）打印C调用函数名称和行号等。
-	*（3.5）弹出一个调用堆栈框架
-	*注意：调用函数的返回地址EIP = SS：[ebp+ 4 ]
-	*调用函数的EBP = SS：[ebp]
+    /*
+    （1）通过调用read_ebp()得到EBP的值。类型（uint32_t）；
+    （2）通过调用read_eip()得到eip的值。类型（uint32_t）；
+    （3）从0到STACKFRAME_DEPTH：
+        （3.1）打印EBP EIP的值，
+        （3.2）（uint32_t）调用参数calling arguments [0..4] = 
+                the contents in address (unit32_t)ebp +2 [0..4]
+        （3.3）cprintf（“\n”）；
+        （3.4）通过调用print_debuginfo（eip-1）打印C调用函数名称和行号等。
+        （3.5）弹出一个调用栈帧堆栈
+                注意：调用函数的返回地址EIP = SS：[ebp+ 4 ]
+                调用函数的EBP = SS：[ebp]
 	*/
 
-    uint32_t ebp = read_ebp(), eip = read_eip();
+    uint32_t ebp = read_ebp(), eip = read_eip();    //初始化ebp，eip
 
     int i, j;
-    for (i = 0; ebp != 0 && i < STACKFRAME_DEPTH; i ++) {
-        cprintf("ebp:0x%08x eip:0x%08x args:", ebp, eip);
-        uint32_t *args = (uint32_t *)ebp + 2;
+    for (i = 0; ebp != 0 && i < STACKFRAME_DEPTH; i ++) {   //从0到STACKFRAME_DEPTH,ebp不能为0
+        cprintf("ebp:0x%08x eip:0x%08x args:", ebp, eip);   //打印EBP EIP的值
+        uint32_t *args = (uint32_t *)ebp + 2;   //args指针所表示的地址值
         for (j = 0; j < 4; j ++) {
             cprintf("0x%08x ", args[j]);
         }
         cprintf("\n");
-        print_debuginfo(eip - 1);
+        print_debuginfo(eip - 1);       //ucore提供了print_debuginfo()函数来打印函数的信息
         eip = ((uint32_t *)ebp)[1];
         ebp = ((uint32_t *)ebp)[0];
     }

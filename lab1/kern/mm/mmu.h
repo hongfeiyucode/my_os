@@ -46,7 +46,7 @@
 #define STS_IG32        0xE            // 32-bit Interrupt Gate
 #define STS_TG32        0xF            // 32-bit Trap Gate
 
-/* Gate descriptors for interrupts and traps */
+/* Gate descriptors for interrupts and traps 中断和陷阱的门描述符*/
 struct gatedesc {
     unsigned gd_off_15_0 : 16;        // low 16 bits of offset in segment
     unsigned gd_ss : 16;            // segment selector
@@ -69,15 +69,14 @@ struct gatedesc {
  *          using an int instruction.
  * */
 
-/* *
-*设置一个正常的中断/陷阱门描述符
-* istrap：1个陷阱（=例外）门，0中断门
-*选择：代码段选择器中断/陷阱处理程序
-*：中断/陷阱处理程序代码段的偏移量
-* DPL：描述符特权级的特权等级要求
-*软件调用此中断/陷阱门明确
-*使用int指令。
-* */
+/*
+设置一个正常的中断/陷阱门描述符
+istrap  ：1个陷阱（=例外）门，0中断门
+sel(ect)：代码段选择器中断/陷阱处理程序
+off     ：中断/陷阱处理程序代码段的偏移量
+dpl     ：描述符特权级的特权级别所需的软件调用这个中断/陷阱明确使用int指令门。
+*/
+
 
 #define SETGATE(gate, istrap, sel, off, dpl) {            \
     (gate).gd_off_15_0 = (uint32_t)(off) & 0xffff;        \

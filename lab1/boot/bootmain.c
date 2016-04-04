@@ -60,6 +60,7 @@ waitdisk(void) {
 static void
 readsect(void *dst, uint32_t secno) {
     // wait for disk to be ready
+    // 第一个IDE通道中各寄存器的I/O地址是0x1f0-0x1f7
     waitdisk();
 
     outb(0x1F2, 1);                         // count = 1
@@ -118,8 +119,11 @@ bootmain(void) {
         readseg(ph->p_va & 0xFFFFFF, ph->p_memsz, ph->p_offset);
     }
 
-    // call the entry point from the ELF header
-    // note: does not return
+    // call the entry point from the ELF header 
+    // note: does not return 跳转到内核的入口。
+    // 先将内核程序的入口地址转换成一个函数指针，而后调用该函数。
+    // 也可以通过汇编指令直接跳转到内核。
+    // 内核入口是kern/init/kern_init。
     ((void (*)(void))(ELFHDR->e_entry & 0xFFFFFF))();
 
 bad:
