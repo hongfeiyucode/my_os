@@ -8,8 +8,10 @@
  *
  * The kernel debugger can understand some debugging information in
  * the STABS format.  For more information on this format, see
+ 内核调试器可以理解在刺格式的一些调试信息。在这个格式的更多信息，见
  * http://sources.redhat.com/gdb/onlinedocs/stabs_toc.html
  *
+ 下面的常数定义一些符号类型的调试器和编译器使用
  * The constants below define some symbol types used by various debuggers
  * and compilers.  Kernel uses the N_SO, N_SOL, N_FUN, and N_SLINE types.
  * */

@@ -12,7 +12,7 @@
 /* Represents true-or-false values */
 typedef int bool;
 
-/* Explicitly-sized versions of integer types */
+/* Explicitly-sized versions of integer types 无符号整型缩写定义*/
 typedef char int8_t;
 typedef unsigned char uint8_t;
 typedef short int16_t;
@@ -23,6 +23,9 @@ typedef long long int64_t;
 typedef unsigned long long uint64_t;
 
 /* *
+ *指针和地址是32位长。
+ *我们使用指针类型来表示地址，
+ * uintptr_t代表地址的数值。
  * Pointers and addresses are 32 bits long.
  * We use pointer types to represent addresses,
  * uintptr_t to represent the numerical values of addresses.

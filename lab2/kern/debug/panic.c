@@ -8,6 +8,7 @@ static bool is_panic = 0;
 /* *
  * __panic - __panic is called on unresolvable fatal errors. it prints
  * "panic: 'message'", and then enters the kernel monitor.
+ * __panic 是无法解决的致命错误。它打印 "panic: 'message'" ，然后进入内核监视器。
  * */
 void
 __panic(const char *file, int line, const char *fmt, ...) {

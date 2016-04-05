@@ -19,7 +19,7 @@ kern_init(void) {
     extern char edata[], end[];
     memset(edata, 0, end - edata);
 
-    cons_init();                // init the console
+    cons_init();                // init the console ¿ØÖÆÌ¨
 
     const char *message = "(THU.CST) os is loading ...";
     cprintf("%s\n\n", message);
@@ -28,15 +28,15 @@ kern_init(void) {
 
     grade_backtrace();
 
-    pmm_init();                 // init physical memory management
+    pmm_init();                 // init physical memory management ÎïÀíÄÚ´æ¹ÜÀí
 
-    pic_init();                 // init interrupt controller
-    idt_init();                 // init interrupt descriptor table
+   pic_init();                 // init interrupt controller ÖÐ¶Ï¿ØÖÆÆ÷
+    idt_init();                 // init interrupt descriptor table ÖÐ¶ÏÃèÊö·û±í
 
-    clock_init();               // init clock interrupt
-    intr_enable();              // enable irq interrupt
+    clock_init();               // init clock interrupt Ê±ÖÓÖÐ¶Ï
+    intr_enable();              // enable irq interrupt Ê¹ÄÜÖÐ¶Ï
 
-    //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test()
+    //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test() ×¢ÊÍ
     // user/kernel mode switch test
     //lab1_switch_test();
 
@@ -85,11 +85,24 @@ lab1_print_cur_status(void) {
 static void
 lab1_switch_to_user(void) {
     //LAB1 CHALLENGE 1 : TODO
+    asm volatile (
+        "sub $0x8, %%esp \n"  
+        "int %0 \n"
+        "movl %%ebp, %%esp"  //ebp是在内核态时的ebp
+        : 
+        : "i"(T_SWITCH_TOU)   //120
+    );
 }
 
 static void
 lab1_switch_to_kernel(void) {
     //LAB1 CHALLENGE 1 :  TODO
+    asm volatile (
+        "int %0 \n"    //这里是在USER，int就切到了kernel，这个int和上面那个int不一样，它暗藏了一个sub 0x08,%%esp
+        "movl %%ebp, %%esp \n"
+        : 
+        : "i"(T_SWITCH_TOK)
+    );
 }
 
 static void

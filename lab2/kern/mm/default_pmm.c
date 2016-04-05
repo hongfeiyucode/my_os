@@ -8,6 +8,9 @@
    satisfy the request. If the chosen block is significantly larger than that requested, then it is 
    usually split, and the remainder added to the list as another free block.
    Please see Page 196~198, Section 8.2 of Yan Wei Min's chinese book "Data Structure -- C programming language"
+   在首次适应算法、分配器保持空闲块链表的（称为自由列表），接收一个请求的内存，
+   扫描在列表的第一块足以满足要求。如果所选择的块是显着大于请求，那么它通常是分裂的，
+   和其余的添加到列表中作为另一个自由块。请参阅《数据结构-语言编程语言》196~198页
 */
 // LAB2 EXERCISE 1: YOUR CODE
 // you should rewrite functions: default_init,default_init_memmap,default_alloc_pages, default_free_pages.

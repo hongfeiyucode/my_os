@@ -8,6 +8,7 @@
 /* *
  * Simple command-line kernel monitor useful for controlling the
  * kernel and exploring the system interactively.
+ 简单的命令行内核监视器，用于控制内核和交互的探索。
  * */
 
 struct command {
