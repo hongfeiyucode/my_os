@@ -1,4 +1,4 @@
-#ifndef __LIBS_ATOMIC_H__
+﻿#ifndef __LIBS_ATOMIC_H__
 #define __LIBS_ATOMIC_H__
 
 /* Atomic operations that C can't guarantee us. Useful for resource counting etc.. */

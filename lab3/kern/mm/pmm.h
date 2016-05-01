@@ -1,4 +1,4 @@
-#ifndef __KERN_MM_PMM_H__
+﻿#ifndef __KERN_MM_PMM_H__
 #define __KERN_MM_PMM_H__
 
 #include <defs.h>
@@ -10,6 +10,8 @@
 // pmm_manager is a physical memory management class. A special pmm manager - XXX_pmm_manager
 // only needs to implement the methods in pmm_manager class, then XXX_pmm_manager can be used
 // by ucore to manage the total physical memory space.
+// pmm_manager是物理内存管理类。一个特殊的物理内存管理的管理 - xxx_pmm_manager只需要在pmm_manager类实现方法
+// 然后xxx_pmm_manager管理总物理内存空间。
 struct pmm_manager {
     const char *name;                                 // XXX_pmm_manager's name
     void (*init)(void);                               // initialize internal description&management data structure

@@ -1,4 +1,4 @@
-#ifndef __KERN_DEBUG_MONITOR_H__
+﻿#ifndef __KERN_DEBUG_MONITOR_H__
 #define __KERN_DEBUG_MONITOR_H__
 
 #include <trap.h>

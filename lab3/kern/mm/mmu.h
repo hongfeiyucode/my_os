@@ -1,4 +1,4 @@
-#ifndef __KERN_MM_MMU_H__
+﻿#ifndef __KERN_MM_MMU_H__
 #define __KERN_MM_MMU_H__
 
 /* Eflags register */
@@ -83,17 +83,27 @@ struct gatedesc {
  *          for software to invoke this interrupt/trap gate explicitly
  *          using an int instruction.
  * */
-#define SETGATE(gate, istrap, sel, off, dpl) {               \
-        (gate).gd_off_15_0 = (uint32_t)(off) & 0xffff;      \
-        (gate).gd_ss = (sel);                                \
-        (gate).gd_args = 0;                                 \
-        (gate).gd_rsv1 = 0;                                 \
-        (gate).gd_type = (istrap) ? STS_TG32 : STS_IG32;    \
-        (gate).gd_s = 0;                                    \
-        (gate).gd_dpl = (dpl);                              \
-        (gate).gd_p = 1;                                    \
-        (gate).gd_off_31_16 = (uint32_t)(off) >> 16;        \
-    }
+
+/*
+设置一个正常的中断/陷阱门描述符
+istrap  ：1个陷阱（=例外）门，0中断门
+sel(ect)：代码段选择器中断/陷阱处理程序
+off     ：中断/陷阱处理程序代码段的偏移量
+dpl     ：描述符特权级的特权级别所需的软件调用这个中断/陷阱明确使用int指令门。
+*/
+
+
+#define SETGATE(gate, istrap, sel, off, dpl) {            \
+    (gate).gd_off_15_0 = (uint32_t)(off) & 0xffff;        \
+    (gate).gd_ss = (sel);                                \
+    (gate).gd_args = 0;                                    \
+    (gate).gd_rsv1 = 0;                                    \
+    (gate).gd_type = (istrap) ? STS_TG32 : STS_IG32;    \
+    (gate).gd_s = 0;                                    \
+    (gate).gd_dpl = (dpl);                                \
+    (gate).gd_p = 1;                                    \
+    (gate).gd_off_31_16 = (uint32_t)(off) >> 16;        \
+}
 
 /* Set up a call gate descriptor */
 #define SETCALLGATE(gate, ss, off, dpl) {                   \

@@ -1,7 +1,8 @@
-#include <defs.h>
+﻿#include <defs.h>
 #include <x86.h>
 #include <picirq.h>
 
+//中断控制器8259A的初始化和使能操作
 // I/O Addresses of the two programmable interrupt controllers
 #define IO_PIC1             0x20    // Master (IRQs 0-7)
 #define IO_PIC2             0xA0    // Slave (IRQs 8-15)

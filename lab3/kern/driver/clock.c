@@ -1,10 +1,10 @@
-#include <x86.h>
+﻿#include <x86.h>
 #include <trap.h>
 #include <stdio.h>
 #include <picirq.h>
 
 /* *
- * Support for time-related hardware gadgets - the 8253 timer,
+ * Support for time-related hardware gadgets - the 8253 timer, 时钟控制器8253初始化
  * which generates interruptes on IRQ-0.
  * */
 

@@ -1,4 +1,4 @@
-#ifndef __KERN_DEBUG_KDEBUG_H__
+﻿#ifndef __KERN_DEBUG_KDEBUG_H__
 #define __KERN_DEBUG_KDEBUG_H__
 
 #include <defs.h>

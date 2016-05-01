@@ -1,4 +1,4 @@
-#ifndef __KERN_MM_SWAP_H__
+﻿#ifndef __KERN_MM_SWAP_H__
 #define __KERN_MM_SWAP_H__
 
 #include <defs.h>

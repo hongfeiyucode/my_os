@@ -1,4 +1,4 @@
-#ifndef __KERN_DRIVER_KBDREG_H__
+﻿#ifndef __KERN_DRIVER_KBDREG_H__
 #define __KERN_DRIVER_KBDREG_H__
 
 // Special keycodes

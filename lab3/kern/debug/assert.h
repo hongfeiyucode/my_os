@@ -1,4 +1,4 @@
-#ifndef __KERN_DEBUG_ASSERT_H__
+﻿#ifndef __KERN_DEBUG_ASSERT_H__
 #define __KERN_DEBUG_ASSERT_H__
 
 #include <defs.h>

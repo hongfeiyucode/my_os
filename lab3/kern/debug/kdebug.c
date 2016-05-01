@@ -1,4 +1,4 @@
-#include <defs.h>
+﻿#include <defs.h>
 #include <x86.h>
 #include <stab.h>
 #include <stdio.h>
@@ -10,12 +10,15 @@
 
 #define STACKFRAME_DEPTH 20
 
+// stabs : symbol table entries 符号表入口
+// 符号表 ：在计算机科学中，符号表是一种用于语言翻译器（例如编译器和解释器）中的数据结构。
+// 在符号表中，程序源代码中的每个标识符都和它的声明或使用信息绑定在一起，比如其数据类型、作用域以及内存地址。
 extern const struct stab __STAB_BEGIN__[];  // beginning of stabs table
 extern const struct stab __STAB_END__[];    // end of stabs table
 extern const char __STABSTR_BEGIN__[];      // beginning of string table
 extern const char __STABSTR_END__[];        // end of string table
 
-/* debug information about a particular instruction pointer */
+/* debug information about a particular instruction pointer 特殊指令指针*/
 struct eipdebuginfo {
     const char *eip_file;                   // source code filename for eip
     int eip_line;                           // source code line number for eip
@@ -24,6 +27,32 @@ struct eipdebuginfo {
     uintptr_t eip_fn_addr;                  // start address of function
     int eip_fn_narg;                        // number of function arguments
 };
+
+
+/* stab_binsearch根据输入初始值范围[ * * @ @ region_left，region_right ]，找到一个
+单一的 stabs，包括地址”地址和配型”类型，然后将其边界，指出“region_left和@ region_right位置。
+一些 stabs类型被安排在增加指令地址。例如，n_fun stabs（ stabs的条目n_type = = n_fun），
+它标识的功能，并n_so stabs，标志着源文件。
+给定一个指令地址，该函数可以找到包含该地址的类型@类型的单 stabs输入。
+搜索发生的范围内region_left [ * @，* @ region_right ]。
+因此，寻找N，一整套的，你可能会做：
+ *      left = 0;
+ *      right = N - 1;    (rightmost stab)
+ *      stab_binsearch(stabs, &left, &right, type, addr);
+搜索修改*和* region_right region_left支架”地址。* @ region_left点匹配的 stabs，包含@地址，和* @ region_right点之前下 stabs。如果* @ region_left > * region_right，然后@地址不包含在任何匹配的 stabs。
+例如，鉴于这些n_so stabs：指数型地址0
+ *      Index  Type   Address
+ *      0      SO     f0100000
+ *      13     SO     f0100040
+ *      117    SO     f0100176
+ *      118    SO     f0100178
+ *      555    SO     f0100652
+ *      556    SO     f0100654
+ *      657    SO     f0100849
+ 代码：左为0，右= 657；
+ stab_binsearch（ stabs，左，右，n_so，0xf0100184）；
+ 将退出设置左= 118，右= 554。
+*/
 
 /* *
  * stab_binsearch - according to the input, the initial value of
@@ -305,5 +334,35 @@ print_stackframe(void) {
       *           NOTICE: the calling funciton's return addr eip  = ss:[ebp+4]
       *                   the calling funciton's ebp = ss:[ebp]
       */
+
+	/* LAB1代码：步骤1 */
+    /*
+    （1）通过调用read_ebp()得到EBP的值。类型（uint32_t）；
+    （2）通过调用read_eip()得到eip的值。类型（uint32_t）；
+    （3）从0到STACKFRAME_DEPTH：
+        （3.1）打印EBP EIP的值，
+        （3.2）（uint32_t）调用参数calling arguments [0..4] = 
+                the contents in address (unit32_t)ebp +2 [0..4]
+        （3.3）cprintf（“\n”）；
+        （3.4）通过调用print_debuginfo（eip-1）打印C调用函数名称和行号等。
+        （3.5）弹出一个调用栈帧堆栈
+                注意：调用函数的返回地址EIP = SS：[ebp+ 4 ]
+                调用函数的EBP = SS：[ebp]
+	*/
+
+    uint32_t ebp = read_ebp(), eip = read_eip();    //初始化ebp，eip
+
+    int i, j;
+    for (i = 0; ebp != 0 && i < STACKFRAME_DEPTH; i ++) {   //从0到STACKFRAME_DEPTH,ebp不能为0
+        cprintf("ebp:0x%08x eip:0x%08x args:", ebp, eip);   //打印EBP EIP的值
+        uint32_t *args = (uint32_t *)ebp + 2;   //args指针所表示的地址值
+        for (j = 0; j < 4; j ++) {
+            cprintf("0x%08x ", args[j]);
+        }
+        cprintf("\n");
+        print_debuginfo(eip - 1);       //ucore提供了print_debuginfo()函数来打印函数的信息
+        eip = ((uint32_t *)ebp)[1];
+        ebp = ((uint32_t *)ebp)[0];
+    }
 }
 

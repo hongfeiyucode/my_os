@@ -1,4 +1,4 @@
-#ifndef __KERN_DRIVER_CLOCK_H__
+﻿#ifndef __KERN_DRIVER_CLOCK_H__
 #define __KERN_DRIVER_CLOCK_H__
 
 #include <defs.h>
