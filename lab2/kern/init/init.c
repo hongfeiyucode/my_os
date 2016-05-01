@@ -19,7 +19,7 @@ kern_init(void) {
     extern char edata[], end[];
     memset(edata, 0, end - edata);
 
-    cons_init();                // init the console ¿ØÖÆÌ¨
+    cons_init();                // init the console 
 
     const char *message = "(THU.CST) os is loading ...";
     cprintf("%s\n\n", message);
@@ -28,15 +28,15 @@ kern_init(void) {
 
     grade_backtrace();
 
-    pmm_init();                 // init physical memory management ÎïÀíÄÚ´æ¹ÜÀí
+    pmm_init();                 // init physical memory management 
 
-   pic_init();                 // init interrupt controller ÖÐ¶Ï¿ØÖÆÆ÷
-    idt_init();                 // init interrupt descriptor table ÖÐ¶ÏÃèÊö·û±í
+    pic_init();                 // init interrupt controller 
+    idt_init();                 // init interrupt descriptor table
 
-    clock_init();               // init clock interrupt Ê±ÖÓÖÐ¶Ï
-    intr_enable();              // enable irq interrupt Ê¹ÄÜÖÐ¶Ï
+    clock_init();               // init clock interrupt 
+    intr_enable();              // enable irq interrupt 
 
-    //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test() ×¢ÊÍ
+    //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test() 
     // user/kernel mode switch test
     //lab1_switch_test();
 

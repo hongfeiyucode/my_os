@@ -20,3 +20,11 @@ a.out
 chytesting
 disk0
 *.orig
+
+.vs/
+Debug/
+*.sdf
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
