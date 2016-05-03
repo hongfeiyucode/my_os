@@ -3,6 +3,21 @@
 #include <elf.h>
 
 /* *********************************************************************
+一个简单的引导加载程序，其唯一的工作就是启动一个ELF内核映像从第一个IDE硬盘（退伍的硬盘）。
+磁盘布局
+    这个程序（bootasm.S和bootmain.c）是bootloader。
+    它应该存储在磁盘的第一扇区中。
+    第二分区继续持有kernel镜像。
+    内核映像必须是ELF格式。
+启动步骤
+    当CPU在boot它加载到内存中并执行它的BIOS
+    BIOS intializes设备的中断例程集，并读取启动设备的第一个扇区（如硬盘）到内存并跳转到它。
+    假设该引导装载程序存储在硬盘驱动器的第一扇区中，此代码将需要…
+    控制开始在bootasm。--建立保护模式，和一个栈，C代码，然后运行，然后调用bootmain()
+    在这个文件中bootmain()接管，读取内核和跳转到它。
+*/
+
+/* *********************************************************************
  * This a dirt simple boot loader, whose sole job is to boot
  * an ELF kernel image from the first IDE hard disk.
  *
@@ -44,6 +59,7 @@ waitdisk(void) {
 static void
 readsect(void *dst, uint32_t secno) {
     // wait for disk to be ready
+    // 第一个IDE通道中各寄存器的I/O地址是0x1f0-0x1f7
     waitdisk();
 
     outb(0x1F2, 1);                         // count = 1
@@ -102,8 +118,11 @@ bootmain(void) {
         readseg(ph->p_va & 0xFFFFFF, ph->p_memsz, ph->p_offset);
     }
 
-    // call the entry point from the ELF header
-    // note: does not return
+    // call the entry point from the ELF header 
+    // note: does not return 跳转到内核的入口。
+    // 先将内核程序的入口地址转换成一个函数指针，而后调用该函数。
+    // 也可以通过汇编指令直接跳转到内核。
+    // 内核入口是kern/init/kern_init。
     ((void (*)(void))(ELFHDR->e_entry & 0xFFFFFF))();
 
 bad:

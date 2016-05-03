@@ -1,4 +1,4 @@
-#include <pmm.h>
+﻿#include <pmm.h>
 #include <list.h>
 #include <string.h>
 #include <default_pmm.h>
@@ -65,78 +65,131 @@ default_init(void) {
     nr_free = 0;
 }
 
-static void
-default_init_memmap(struct Page *base, size_t n) {
-    assert(n > 0);
-    struct Page *p = base;
-    for (; p != base + n; p ++) {
-        assert(PageReserved(p));
-        p->flags = p->property = 0;
-        set_page_ref(p, 0);
-    }
-    base->property = n;
-    SetPageProperty(base);
-    nr_free += n;
-    list_add(&free_list, &(base->page_link));
+/* (3) default_init_memmap:  CALL GRAPH: kern_init -->
+*pmm_init-->page_init-->init_memmap--> pmm_manager->init_memmap
+ *              This fun is used to init a free block (with parameter:
+*addr_base, page_number).
+ *              First you should init each page (in memlayout.h) in this free
+*block, include:
+ *                  p->flags should be set bit PG_property (means this page is
+*valid. In pmm_init fun (in pmm.c),
+ *                  the bit PG_reserved is setted in p->flags)
+ *                  if this page  is free and is not the first page of free
+*block, p->property should be set to 0.
+ *                  if this page  is free and is the first page of free block,
+*p->property should be set to total num of block.
+ *                  p->ref should be 0, because now p is free and no reference.
+ *                  We can use p->page_link to link this page to free_list,
+*(such as: list_add_before(&free_list, &(p->page_link)); )
+ *              Finally, we should sum the number of free mem block: nr_free+=n
+*调用图：kern_init --> pmm_init --> page_init --> init_memmap --> pmm_manager ->
+*init_memmap
+*这个函数是用来初始化一个空闲块（参数：addr_base，page_number）。
+*首先你应该初始化每个页面（在memlayout.h）在这个空闲块，包括：
+* p->flags 应设置标志位 PG_property（意味着这个页面是有效的。在pmm_init函数（在PMM.C），*标志位pg_reserved设置在p->flags）
+*如果这一页是空闲的，而不是第一页的空闲块，应设置为0。
+*如果这个页面是空闲的，是空闲块的第一个页，P—>属性应设置为块总数。
+*p->flags 应该是0，因为现在是免费的，没有参考。
+*我们可以使用p->page_link链接这个页面free_list，（如：list_add_before(&free_list,*&(p->page_link)); )
+*最后，我们应该和空闲内存块的数量：nr_free + = n
+*/
+
+static void default_init_memmap(struct Page *base, size_t n) {
+  assert(n > 0); // assert 判断n是否大于0，如果不是则报错
+  struct Page *p = base;
+  for (; p != base + n; p++) {
+    assert(PageReserved(p)); // 判断该页是否为保留页，如果不是则报错
+    p->flags = 0;
+    SetPageProperty(p);// segPageProperty设置的是flags的状态，后面有解释
+    p->property = 0; 
+    set_page_ref(p, 0); //设置引用数为0
+    list_add_before(&free_list, &(p->page_link));
+  }
+  base->property = n; //设置空闲页的数目
+  nr_free += n; //空闲页计数
+  cprintf("default_init_memmap finish!!!\n");
 }
 
 static struct Page *
 default_alloc_pages(size_t n) {
     assert(n > 0);
-    if (n > nr_free) {
+    if (n > nr_free) { //判断大小是否超出空闲总数
         return NULL;
     }
-    struct Page *page = NULL;
-    list_entry_t *le = &free_list;
-    while ((le = list_next(le)) != &free_list) {
-        struct Page *p = le2page(le, page_link);
-        if (p->property >= n) {
-            page = p;
-            break;
+    list_entry_t *le, *len;
+    le = &free_list;
+
+    while((le=list_next(le)) != &free_list) {//判断是否走到了尽头（双循环链表）
+      struct Page *p = le2page(le, page_link); //le2page将从list转换到page 
+      if(p->property >= n){ // 找到满足要求的页则令page=p
+        int i;
+        for(i=0;i<n;i++){
+          len = list_next(le);
+          struct Page *pp = le2page(le, page_link);
+          SetPageReserved(pp);
+          ClearPageProperty(pp);
+          list_del(le);
+          le = len;
         }
+        if(p->property>n){
+          (le2page(le,page_link))->property = p->property - n; //p的空闲块减少n
+        }
+        ClearPageProperty(p);
+        SetPageReserved(p);
+        nr_free -= n;//空闲页的数目减去n
+        return p;
+      }
     }
-    if (page != NULL) {
-        list_del(&(page->page_link));
-        if (page->property > n) {
-            struct Page *p = page + n;
-            p->property = page->property - n;
-            list_add(&free_list, &(p->page_link));
-    }
-        nr_free -= n;
-        ClearPageProperty(page);
-    }
-    return page;
+    return NULL;
 }
+
 
 static void
 default_free_pages(struct Page *base, size_t n) {
     assert(n > 0);
-    struct Page *p = base;
-    for (; p != base + n; p ++) {
-        assert(!PageReserved(p) && !PageProperty(p));
-        p->flags = 0;
-        set_page_ref(p, 0);
+   assert(PageReserved(base));//检查页标志位是否错误
+
+    list_entry_t *le = &free_list;
+    struct Page * p;
+    while((le=list_next(le)) != &free_list) {//查找该插入的位置
+      p = le2page(le, page_link);
+      if(p>base){
+        break;
+      }
     }
-    base->property = n;
+    //向le之前插入n个页，并设置标志位
+    for(p=base;p<base+n;p++){
+      list_add_before(le, &(p->page_link));
+    }
+    base->flags = 0;
+    set_page_ref(base, 0);
+    ClearPageProperty(base);
     SetPageProperty(base);
-    list_entry_t *le = list_next(&free_list);
-    while (le != &free_list) {
-        p = le2page(le, page_link);
-        le = list_next(le);
-        if (base + base->property == p) {
-            base->property += p->property;
-            ClearPageProperty(p);
-            list_del(&(p->page_link));
-        }
-        else if (p + p->property == base) {
-            p->property += base->property;
-            ClearPageProperty(base);
-            base = p;
-            list_del(&(p->page_link));
-        }
+    //将页块信息记录在头部
+    base->property = n;
+    
+    p = le2page(le,page_link) ;
+    if( base+n == p ){//向高地址合并
+      base->property += p->property;
+      p->property = 0;
     }
+    le = list_prev(&(base->page_link));
+    p = le2page(le, page_link);
+    if(le!=&free_list && p==base-1){//向低地址合并
+      while(le!=&free_list){
+        if(p->property){
+          p->property += base->property;
+          base->property = 0;
+          break;
+        }
+        le = list_prev(le);
+        p = le2page(le,page_link);
+      }
+    }
+
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+    return ;
+
 }
 
 static size_t
