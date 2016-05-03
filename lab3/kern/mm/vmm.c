@@ -285,13 +285,19 @@ volatile unsigned int pgfault_num=0;
  * @error_code : the error code recorded in trapframe->tf_err which is setted by x86 hardware
  * @addr       : the addr which causes a memory access exception, (the contents of the CR2 register)
  *
+ * do_pgfault – 这是一个用于处理寻页异常的函数
+ * @mm         : 控制所有虚拟内存空间
+ * @error_code : 错误代码
+ * @addr       : 造成内存访问异常的地址
  * CALL GRAPH: trap--> trap_dispatch-->pgfault_handler-->do_pgfault
  * The processor provides ucore's do_pgfault function with two items of information to aid in diagnosing
  * the exception and recovering from it.
+ * 处理器提供ucore的do_pgfault两个信息在诊断异常，并从中恢复提供帮助。
  *   (1) The contents of the CR2 register. The processor loads the CR2 register with the
  *       32-bit linear address that generated the exception. The do_pgfault fun can
  *       use this address to locate the corresponding page directory and page-table
  *       entries.
+ *  CR2寄存器的内容。处理器加载与产生异常的32位线性地址CR2寄存器。该do_pgfault函数可以使用这个地址来查找相应的页面目录和页表项。
  *   (2) An error code on the kernel stack. The error code for a page fault has a format different from
  *       that for other exceptions. The error code tells the exception handler three things:
  *         -- The P flag   (bit 0) indicates whether the exception was due to a not-present page (0)
@@ -300,6 +306,10 @@ volatile unsigned int pgfault_num=0;
  *            was a read (0) or write (1).
  *         -- The U/S flag (bit 2) indicates whether the processor was executing at user mode (1)
  *            or supervisor mode (0) at the time of the exception.
+ * 内核栈上的一个错误代码。一个页面故障错误代码具有不同于其他异常不同的格式。错误代码告诉异常处理三件事：
+   - 在P标志（位0）表示异常是否一个不存在的页面是由于（0）或到任何一个访问权限冲突或使用保留位（1 ）。
+   - 在W / R标志（1位）表示导致异常的内存访问是read (0) or write (1)。 
+   - 该U / S标志（位2）指示是否该处理器是在异常的时间在用户模式（1）或管理程序模式（0）执行。
  */
 int
 do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
@@ -364,38 +374,49 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *   mm->pgdir : the PDT of these vma
     *
     */
-#if 0
-    /*LAB3 EXERCISE 1: YOUR CODE*/
-    ptep = ???              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
-    if (*ptep == 0) {
-                            //(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
 
+    /*LAB3 EXERCISE 1: YOUR CODE*/
+    if ((ptep = get_pte(mm->pgdir, addr, 1)) == NULL) {
+        cprintf("get_pte in do_pgfault failed\n");
+        goto failed;
+    }              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
+    if (*ptep == 0) {//(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
+        if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) {
+            cprintf("pgdir_alloc_page in do_pgfault failed\n");
+            goto failed;
+        }
     }
     else {
     /*LAB3 EXERCISE 2: YOUR CODE
     * Now we think this pte is a  swap entry, we should load data from disk to a page with phy addr,
     * and map the phy addr with logical addr, trigger swap manager to record the access situation of this page.
-    *
+    * 现在，我们认为这pte是交换项，我们应该从磁盘加载数据与物理地址的网页，并映射逻辑地址，触发swap manager物理地址记录本页面的访问情况。
     *  Some Useful MACROs and DEFINEs, you can use them in below implementation.
     *  MACROs or Functions:
-    *    swap_in(mm, addr, &page) : alloc a memory page, then according to the swap entry in PTE for addr,
-    *                               find the addr of disk page, read the content of disk page into this memroy page
-    *    page_insert ： build the map of phy addr of an Page with the linear addr la
-    *    swap_map_swappable ： set the page swappable
+    *    swap_in(mm, addr, &page) : alloc a memory page, then according to the swap entry in PTE for addr, find the addr of disk page, read the content of disk page into this memroy page
+    *    分配一个内存页，然后根据对地址的PTE的交换项，找到磁盘页面的地址，读盘的外存页内容到这个内存页
+    *    page_insert ： build the map of phy addr of an Page with the linear addr la 建立物理地址页与线性地址页的映射关系
+    *    swap_map_swappable ： set the page swappable 设置页面可交换
+    （1）根据mm和地址，尽量右盘页的内容加载到其中页管理的存储器。
+    （2）根据毫米，地址和页面，设置PHY地址< - >逻辑地址的地图
+    （3）使页面交换。
     */
         if(swap_init_ok) {
             struct Page *page=NULL;
-                                    //(1）According to the mm AND addr, try to load the content of right disk page
-                                    //    into the memory which page managed.
-                                    //(2) According to the mm, addr AND page, setup the map of phy addr <---> logical addr
-                                    //(3) make the page swappable.
+            if ((ret = swap_in(mm, addr, &page)) != 0) { //(1）According to the mm AND addr, try to load the content of right disk page
+                cprintf("swap_in in do_pgfault failed\n"); //    into the memory which page managed.
+                goto failed;
+            }
+            page_insert(mm->pgdir, page, addr, perm);//(2) According to the mm, addr AND page, setup the map of phy addr <---> logical addr
+            swap_map_swappable(mm, addr, page, 1);//(3) make the page swappable.
+            page->pra_vaddr = addr;                                  
         }
         else {
             cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
             goto failed;
         }
    }
-#endif
+
    ret = 0;
 failed:
     return ret;

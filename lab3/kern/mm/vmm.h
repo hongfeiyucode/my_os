@@ -29,9 +29,10 @@ struct vma_struct {
 // the control struct for a set of vma using the same PDT
 struct mm_struct {
     list_entry_t mmap_list;        // linear list link which sorted by start addr of vma
+    //list_entry_t是和之前default_pmm里用到的一样的数据结构，用于构建双链表 
     struct vma_struct *mmap_cache; // current accessed vma, used for speed purpose
-    pde_t *pgdir;                  // the PDT of these vma
-    int map_count;                 // the count of these vma
+    pde_t *pgdir;                  // the PDT of these vma 这些虚拟地址的页目录表 
+    int map_count;                 // the count of these vma 这些页的数量 
     void *sm_priv;                   // the private data for swap manager
 };
 
