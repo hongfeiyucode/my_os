@@ -40,16 +40,16 @@ struct context {
 extern list_entry_t proc_list;
 
 struct proc_struct {
-    enum proc_state state;                      // Process state
+    enum proc_state state;                      // Process state 进程的状态
     int pid;                                    // Process ID
-    int runs;                                   // the running times of Proces
-    uintptr_t kstack;                           // Process kernel stack
+    int runs;                                   // the running times of Proces 
+    uintptr_t kstack;                           // Process kernel stack 线程的内核栈
     volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
-    struct proc_struct *parent;                 // the parent process
-    struct mm_struct *mm;                       // Process's memory management field
-    struct context context;                     // Switch here to run process
-    struct trapframe *tf;                       // Trap frame for current interrupt
-    uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT)
+    struct proc_struct *parent;                 // the parent process 父进程
+    struct mm_struct *mm;                       // Process's memory management field 内存管理
+    struct context context;                     // Switch here to run process 上下文
+    struct trapframe *tf;                       // Trap frame for current interrupt 栈帧
+    uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT) 页目录表基地址
     uint32_t flags;                             // Process flag
     char name[PROC_NAME_LEN + 1];               // Process name
     list_entry_t list_link;                     // Process link list 
