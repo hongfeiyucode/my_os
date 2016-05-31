@@ -171,18 +171,18 @@ get_pid(void) {
 // proc_run - make process "proc" running on cpu
 // NOTE: before call switch_to, should load  base addr of "proc"'s new PDT
 void
-proc_run(struct proc_struct *proc) {
+proc_run(struct proc_struct *proc) { //proc_run可以切换进程
     if (proc != current) {
         bool intr_flag;
         struct proc_struct *prev = current, *next = proc;
-        local_intr_save(intr_flag);
+        local_intr_save(intr_flag);  //关闭中断
         {
-            current = proc;
-            load_esp0(next->kstack + KSTACKSIZE);
-            lcr3(next->cr3);
-            switch_to(&(prev->context), &(next->context));
+            current = proc; //当前进程转换为proc 
+            load_esp0(next->kstack + KSTACKSIZE);  //切换内核堆栈 
+            lcr3(next->cr3);  //切换页目录表  
+            switch_to(&(prev->context), &(next->context));  //登记和布置上下文信息  
         }
-        local_intr_restore(intr_flag);
+        local_intr_restore(intr_flag); //重新打开中断 
     }
 }
 

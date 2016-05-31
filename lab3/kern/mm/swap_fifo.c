@@ -67,6 +67,7 @@ _fifo_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick
      /* Select the victim */
      /*LAB3 EXERCISE 2: YOUR CODE*/ 
      //(1)  unlink the  earliest arrival page in front of pra_list_head qeueue
+     
      list_entry_t *le = head->prev;
      assert(head!=le);
      struct Page *p = le2page(le, pra_page_link);
@@ -75,6 +76,32 @@ _fifo_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick
      assert(p !=NULL);
      *ptr_page = p;
      return 0;
+     /*
+    list_entry_t *le=head; 
+    if(list_prev(le)==head) return 0; 
+    while(1) 
+    { 
+        le=list_prev(le); 
+        if(le==head) continue; 
+        struct Page *p=le2page(le,pra_page_link); 
+        uintptr_t pa=page2pa(p); 
+        if(pa&PTE_D) 
+        { 
+            pa=pa & (~(PTE_D)); 
+            continue; 
+        } 
+        else if(pa&PTE_A) 
+        { 
+            pa=pa & (~(PTE_A)); 
+            continue; 
+        } 
+        else 
+        { 
+            list_del(le); 
+            *ptr_page=p; 
+            return 0; 
+        } 
+    } */
 }
 
 static int
