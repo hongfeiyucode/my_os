@@ -28,3 +28,4 @@ Debug/
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+lab1/obj/bootblock.asm
