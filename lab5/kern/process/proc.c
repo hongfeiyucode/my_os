@@ -397,12 +397,13 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     if((proc=alloc_proc())==NULL){//    1. call alloc_proc to allocate a proc_struct
       goto fork_out;
     }
-    proc->parent = current;  //do_folk创建子线程时当前线程current是它的父线程  
+    proc->parent = current;  //do_folk创建子线程时当前线程current是它的父线程 
+    assert(current->wait_state == 0); 
     if(setup_kstack(proc)!=0){//    2. call setup_kstack to allocate a kernel stack for child process
       goto bad_fork_cleanup_proc;
     }
     if(copy_mm(clone_flags,proc)!=0){//    3. call copy_mm to dup OR share mm according clone_flag
-      goto bad_fork_cleanup_kstack; //复制，本次实验什么都不做，是 lab5的重点，因为这里已经分配了栈了，所以要连同栈一起清理掉 
+      goto bad_fork_cleanup_kstack; //复制是 lab5的重点，因为这里已经分配了栈了，所以要连同栈一起清理掉 
     }
     copy_thread(proc,stack,tf); //    4. call copy_thread to setup tf & context in proc_struct
     
@@ -410,10 +411,12 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     local_intr_save(intr_flag); //关中断 
 
     proc->pid = get_pid();
-    hash_proc(proc);   //加入到哈希队列里面，方便查询  
-    list_add(&proc_list,&(proc->list_link)); //加入到普通进程队列里  
-    nr_process++; //进程总数加1 
-
+    //hash_proc(proc);   //加入到哈希队列里面，方便查询  
+    //list_add(&proc_list,&(proc->list_link)); //加入到普通进程队列里  
+    //nr_process++; //进程总数加1 
+    hash_proc(proc);
+    set_links(proc);
+    
     local_intr_restore(intr_flag); //开中断
     
     wakeup_proc(proc); //    6. call wakeup_proc to make the new child process RUNNABLE
@@ -444,35 +447,35 @@ do_exit(int error_code) {
     struct mm_struct *mm = current->mm;
     if (mm != NULL) {
         lcr3(boot_cr3);
-        if (mm_count_dec(mm) == 0) {
+        if (mm_count_dec(mm) == 0) {//检查是否有共享内存的其他进程 
             exit_mmap(mm);
-            put_pgdir(mm);
-            mm_destroy(mm);
+            put_pgdir(mm);//此函数调用了 free_page()函数，释放页目录表  
+            mm_destroy(mm); //销毁自己目录表  
         }
         current->mm = NULL;
     }
-    current->state = PROC_ZOMBIE;
+    current->state = PROC_ZOMBIE;//将自己设置为僵死态  
     current->exit_code = error_code;
     
     bool intr_flag;
     struct proc_struct *proc;
-    local_intr_save(intr_flag);
+    local_intr_save(intr_flag); //关中断 
     {
-        proc = current->parent;
-        if (proc->wait_state == WT_CHILD) {
-            wakeup_proc(proc);
+        proc = current->parent;//处理当前即将消亡的进程与它的⽗父进程的关系  
+        if (proc->wait_state == WT_CHILD) { //如果父进程在等待它的结束  
+            wakeup_proc(proc); //唤醒父进程  
         }
-        while (current->cptr != NULL) {
+        while (current->cptr != NULL) {//当前进程还有子进程，而且还没有结束  
             proc = current->cptr;
-            current->cptr = proc->optr;
+            current->cptr = proc->optr; //一直追溯，追溯到当前进程的最初的子进程  
     
             proc->yptr = NULL;
-            if ((proc->optr = initproc->cptr) != NULL) {
-                initproc->cptr->yptr = proc;
+            if ((proc->optr = initproc->cptr) != NULL) {//将proc，就是正在处理的⼦子进程，过继给 initproc
+                initproc->cptr->yptr = proc;//proc成为initproc的最新的子进程  
             }
             proc->parent = initproc;
             initproc->cptr = proc;
-            if (proc->state == PROC_ZOMBIE) {
+            if (proc->state == PROC_ZOMBIE) {//如果proc也是一个僵死态进程，那么唤醒initproc将它回收 
                 if (initproc->wait_state == WT_CHILD) {
                     wakeup_proc(initproc);
                 }
@@ -491,7 +494,7 @@ do_exit(int error_code) {
  */
 static int
 load_icode(unsigned char *binary, size_t size) {
-    if (current->mm != NULL) {
+    if (current->mm != NULL) { //如果current进程的内存管理信息为空就要报错
         panic("load_icode: current->mm must be empty.\n");
     }
 
@@ -502,7 +505,7 @@ load_icode(unsigned char *binary, size_t size) {
         goto bad_mm;
     }
     //(2) create a new PDT, and mm->pgdir= kernel virtual addr of PDT
-    if (setup_pgdir(mm) != 0) {
+    if (setup_pgdir(mm) != 0) {//创建并初始化页目录表
         goto bad_pgdir_cleanup_mm;
     }
     //(3) copy TEXT/DATA section, build BSS parts in binary to memory space of process
@@ -616,6 +619,11 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf_eip should be the entry point of this binary program (elf->e_entry)
      *          tf_eflags should be set to enable computer to produce Interrupt
      */
+    tf->tf_cs = USER_CS;
+    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
+    tf->tf_esp = USTACKTOP;
+    tf->tf_eip = elf->e_entry;
+    tf->tf_eflags = FL_IF;//设置好标志位0x00200,打开中断 
     ret = 0;
 out:
     return ret;
@@ -691,14 +699,14 @@ repeat:
     haskid = 0;
     if (pid != 0) {
         proc = find_proc(pid);
-        if (proc != NULL && proc->parent == current) {
+        if (proc != NULL && proc->parent == current) {//找到当前进程的子进程  
             haskid = 1;
-            if (proc->state == PROC_ZOMBIE) {
+            if (proc->state == PROC_ZOMBIE) {//僵死状态
                 goto found;
             }
         }
     }
-    else {
+    else {//如果pid是0号进程，就是将要调用 0号进程，而当前进程需要挂起且没有其他进程要运行，由 0号进程执管 
         proc = current->cptr;
         for (; proc != NULL; proc = proc->optr) {
             haskid = 1;
@@ -707,14 +715,14 @@ repeat:
             }
         }
     }
-    if (haskid) {
+    if (haskid) { //有子进程需要执行，当前进程需要让出 CPU资源 
         current->state = PROC_SLEEPING;
-        current->wait_state = WT_CHILD;
-        schedule();
+        current->wait_state = WT_CHILD;  //wait_state有两种，一个是等待子进程WT_CHILD，另一个是等待中断处理 WT_INTERRUPT 
+        schedule();//调度
         if (current->flags & PF_EXITING) {
             do_exit(-E_KILLED);
         }
-        goto repeat;
+        goto repeat;//循环
     }
     return -E_BAD_PROC;
 
