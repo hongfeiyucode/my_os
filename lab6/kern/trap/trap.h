@@ -37,7 +37,7 @@
 #define IRQ_IDE2                15
 #define IRQ_ERROR               19
 #define IRQ_SPURIOUS            31
-
+#define T_SYSCALL               0x80 // SYSCALL, ONLY FOR THIS PROJ
 /* *
  * These are arbitrarily chosen, but with care not to overlap
  * processor defined exceptions or interrupt vectors.
