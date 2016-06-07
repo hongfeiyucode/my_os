@@ -1,4 +1,4 @@
-#include <defs.h>
+﻿#include <defs.h>
 #include <mmu.h>
 #include <memlayout.h>
 #include <clock.h>
@@ -54,9 +54,18 @@ idt_init(void) {
       *     You don't know the meaning of this instruction? just google it! and check the libs/x86.h to know more.
       *     Notice: the argument of lidt is idt_pd. try to find it!
       */
-     /* LAB5 YOUR CODE */ 
-     //you should update your lab1 code (just add ONE or TWO lines of code), let user app to use syscall to get the service of ucore
-     //so you should setup the syscall interrupt gate in here
+
+    extern uintptr_t __vectors[];
+    int i;
+    for (i = 0; i < sizeof(idt) / sizeof(struct gatedesc); i ++) {
+        SETGATE(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
+    }
+	// set for switch from user to kernel
+        //SETGATE(idt[T_SWITCH_TOK], 0, GD_KTEXT, __vectors[T_SWITCH_TOK], DPL_USER);
+    SETGATE(idt[T_SYSCALL], 1, GD_KTEXT, __vectors[T_SYSCALL], DPL_USER);
+	// load the IDT
+    lidt(&idt_pd);  //load idt 告诉系统idt生成完毕
+
 }
 
 static const char *
@@ -157,7 +166,7 @@ print_pgfault(struct trapframe *tf) {
             (tf->tf_err & 2) ? 'W' : 'R',
             (tf->tf_err & 1) ? "protection fault" : "no page found");
 }
-
+struct trapframe switchk2u, *switchu2k;
 static int
 pgfault_handler(struct trapframe *tf) {
     extern struct mm_struct *check_mm_struct;
@@ -234,6 +243,10 @@ trap_dispatch(struct trapframe *tf) {
          * IMPORTANT FUNCTIONS:
 	     * run_timer_list
          */
+        ticks ++;
+		assert(current != NULL);
+        run_timer_list();
+        break;
         break;
     case IRQ_OFFSET + IRQ_COM1:
         c = cons_getc();
@@ -245,8 +258,42 @@ trap_dispatch(struct trapframe *tf) {
         break;
     //LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
     case T_SWITCH_TOU:
+        if (tf->tf_cs != USER_CS) {
+            switchk2u = *tf;   //trapframes
+            switchk2u.tf_cs = USER_CS;
+            switchk2u.tf_ds = switchk2u.tf_es = switchk2u.tf_ss = USER_DS;
+            switchk2u.tf_esp = (uint32_t)tf + sizeof(struct trapframe) - 8;
+            //esp是栈顶指针
+            //(uint32_t)tf + sizeof(struct trapframe) - 8 等同于tf->tf_esp
+            //switchk2u是tf的一个接力，它的esp就是tf的esp，而SS是USER的DS
+        
+            // set eflags, make sure ucore can use io under user mode.
+            // if CPL > IOPL, then cpu will generate a general protection.
+            switchk2u.tf_eflags |= FL_IOPL_MASK;  //或就是补上，与非就是抹掉
+            //FL_IOPL_MASK 0x00003000   I/O Privilege Level bitmask
+            //EFLAGS(program status and control) register主要用于提供程序的状态及进行相应的控制
+        
+            // set temporary stack
+            // then iret will jump to the right stack
+            *((uint32_t *)tf - 1) = (uint32_t)&switchk2u;
+            //switchk2u的ESP指的是TF的iret
+        }
+        break;
     case T_SWITCH_TOK:
-        panic("T_SWITCH_** ??\n");
+        if (tf->tf_cs != KERNEL_CS) {
+            tf->tf_cs = KERNEL_CS;
+            tf->tf_ds = tf->tf_es = KERNEL_DS; //这里的SS是不动的，因为在INT时已经发生了特权级切换，此时的SS已经压入栈中
+            tf->tf_eflags &= ~FL_IOPL_MASK;//或就是补上，与非就是抹掉
+			//panic("T_SWITCH_** ??\n");
+            
+            switchu2k = (struct trapframe *)(tf->tf_esp - (sizeof(struct trapframe) - 8));
+            //看清楚了，这里是(sizeof(struct trapframe) - 8)，
+            //(tf->tf_esp - (sizeof(struct trapframe) - 8)) 就是tf本身！！！
+            
+            //memmove(void *dst, const void *src, size_t n)移动
+            memmove(switchu2k, tf, sizeof(struct trapframe) - 8);  
+            *((uint32_t *)tf - 1) = (uint32_t)switchu2k; 
+        }
         break;
     case IRQ_OFFSET + IRQ_IDE1:
     case IRQ_OFFSET + IRQ_IDE2:

@@ -1,4 +1,4 @@
-#include <proc.h>
+﻿#include <proc.h>
 #include <kmalloc.h>
 #include <string.h>
 #include <sync.h>
@@ -119,6 +119,26 @@ alloc_proc(void) {
      *     uint32_t lab6_stride;                       // FOR LAB6 ONLY: the current stride of the process
      *     uint32_t lab6_priority;                     // FOR LAB6 ONLY: the priority of process, set by lab6_set_priority(uint32_t)
      */
+	proc->state = PROC_UNINIT;  
+	proc->pid = -1;  
+	proc->runs = 0;  
+	proc->kstack = 0;  
+	proc->need_resched = 0;  
+	proc->parent = NULL;  
+	proc->mm = NULL;  
+	memset(&(proc->context), 0, sizeof(struct context));  
+	proc->tf = NULL;  
+	proc->cr3 = boot_cr3;  
+	proc->flags = 0;  
+	memset(proc->name, 0, PROC_NAME_LEN);  
+	proc->wait_state = 0;  
+	proc->cptr = proc->optr = proc->yptr = NULL;  
+	proc->rq = NULL;  
+	list_init(&(proc->run_link)); 
+	proc->time_slice = 0;  
+	proc->lab6_run_pool.left = proc->lab6_run_pool.right = proc->lab6_run_pool.parent = NULL;//斜堆skew_heap指针初始化  
+	proc->lab6_stride = 0;//步数初始化  
+	proc->lab6_priority = 0;//优先级初始化  
     }
     return proc;
 }
@@ -398,22 +418,33 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
      *   nr_process:   the number of process set
      */
 
-    //    1. call alloc_proc to allocate a proc_struct
-    //    2. call setup_kstack to allocate a kernel stack for child process
-    //    3. call copy_mm to dup OR share mm according clone_flag
-    //    4. call copy_thread to setup tf & context in proc_struct
-    //    5. insert proc_struct into hash_list && proc_list
-    //    6. call wakeup_proc to make the new child process RUNNABLE
-    //    7. set ret vaule using child proc's pid
+    if((proc=alloc_proc())==NULL){//    1. call alloc_proc to allocate a proc_struct
+      goto fork_out;
+    }
+    proc->parent = current;  //do_folk创建子线程时当前线程current是它的父线程 
+    assert(current->wait_state == 0); 
+    if(setup_kstack(proc)!=0){//    2. call setup_kstack to allocate a kernel stack for child process
+      goto bad_fork_cleanup_proc;
+    }
+    if(copy_mm(clone_flags,proc)!=0){//    3. call copy_mm to dup OR share mm according clone_flag
+      goto bad_fork_cleanup_kstack; //复制是 lab5的重点，因为这里已经分配了栈了，所以要连同栈一起清理掉 
+    }
+    copy_thread(proc,stack,tf); //    4. call copy_thread to setup tf & context in proc_struct
+    
+    bool intr_flag;//    5. insert proc_struct into hash_list && proc_list
+    local_intr_save(intr_flag); //关中断 
 
-	//LAB5 YOUR CODE : (update LAB4 steps)
-   /* Some Functions
-    *    set_links:  set the relation links of process.  ALSO SEE: remove_links:  lean the relation links of process 
-    *    -------------------
-	*    update step 1: set child proc's parent to current process, make sure current process's wait_state is 0
-	*    update step 5: insert proc_struct into hash_list && proc_list, set the relation links of process
-    */
-	
+    proc->pid = get_pid();
+    //hash_proc(proc);   //加入到哈希队列里面，方便查询  
+    //list_add(&proc_list,&(proc->list_link)); //加入到普通进程队列里  
+    //nr_process++; //进程总数加1 
+    hash_proc(proc);
+    set_links(proc);
+    
+    local_intr_restore(intr_flag); //开中断
+    
+    wakeup_proc(proc); //    6. call wakeup_proc to make the new child process RUNNABLE
+    ret=proc->pid; //    7. set ret vaule using child proc's pid
 fork_out:
     return ret;
 
@@ -612,6 +643,11 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf_eip should be the entry point of this binary program (elf->e_entry)
      *          tf_eflags should be set to enable computer to produce Interrupt
      */
+    tf->tf_cs = USER_CS;
+    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
+    tf->tf_esp = USTACKTOP;
+    tf->tf_eip = elf->e_entry;
+    tf->tf_eflags = FL_IF;//设置好标志位0x00200,打开中断 
     ret = 0;
 out:
     return ret;
