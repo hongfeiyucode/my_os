@@ -26,8 +26,9 @@ void phi_test_sema(i) /* i：哲学家号码从0到N-1 */
     if(state_sema[i]==HUNGRY&&state_sema[LEFT]!=EATING
             &&state_sema[RIGHT]!=EATING)
     {
-        state_sema[i]=EATING;
+        state_sema[i]=EATING; //如果i的左右两人都没有在用餐，那么用餐  
         up(&s[i]);
+        ////对一个哲学家来说，他正常情况下是 wait_queue是空的，所以这里只会value值加1，到了phi_take_forks_sema的话就是down(&s[i])处减1，如果不正常，也就是在这次尝试得到forks之前已经有排队中的事件，那么它就会wakeup那个事件 
     }
 }
 
@@ -179,10 +180,10 @@ void check_sync(void){
 
     int i;
 
-    //check semaphore
-    sem_init(&mutex, 1);
+    //check semaphore 信号量
+    sem_init(&mutex, 1); //mutex是资源，mutex是全局变量，初始值为 1，这个 mutex不是指刀叉，而是指操作哲学家们状态的“锁”
     for(i=0;i<N;i++){
-        sem_init(&s[i], 0);
+        sem_init(&s[i], 0); //在这里给每一个 sem做初始化，s是指刀叉  
         int pid = kernel_thread(philosopher_using_semaphore, (void *)i, 0);
         if (pid <= 0) {
             panic("create No.%d philosopher_using_semaphore failed.\n");
@@ -191,11 +192,11 @@ void check_sync(void){
         set_proc_name(philosopher_proc_sema[i], "philosopher_sema_proc");
     }
 
-    //check condition variable
+    //check condition variable 管程模式
     monitor_init(&mt, N);
     for(i=0;i<N;i++){
         state_condvar[i]=THINKING;
-        int pid = kernel_thread(philosopher_using_condvar, (void *)i, 0);
+        int pid = kernel_thread(philosopher_using_condvar, (void *)i, 0);//启动所有哲学家的进程，但是这里起的进程是 condvar的
         if (pid <= 0) {
             panic("create No.%d philosopher_using_condvar failed.\n");
         }
